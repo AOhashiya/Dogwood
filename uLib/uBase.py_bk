@@ -1,0 +1,306 @@
+# -*- coding: utf-8 -*-
+# uBase.py
+
+import os
+import re
+import time
+import urllib.request
+import urllib.parse
+import urllib.error
+import requests
+import hashlib
+import sqls as sql
+
+from datetime    import timedelta
+from datetime    import datetime
+from functools   import partial
+from hashids     import Hashids
+from werkzeug    import BaseRequest, BaseResponse, datastructures
+from walrus      import Walrus
+from jinja2 import Environment, FileSystemLoader
+# from prettyprint import  pp_str
+from werkzeug.exceptions import HTTPException, abort
+
+try:
+    import uwsgi
+    bWeb = 1
+except ImportError:
+    bWeb = 0  # when batch import
+
+gTemplateMTime   = None
+gPickletMinMTime = None
+hashids          = Hashids(salt='picks with salt')
+
+# ----------------------------------------------------------------------------
+class UserFunction(object):  # Dummy class for User Functions
+    pass
+
+# ----------------------------------------------------------------------------
+# SQLAlchemy pool
+
+def _mysql_connect():
+    xhost = _getHostForDB()
+    dbParam = dbini.dbParamDic[xhost].copy()
+    return MySQLdb.Connect(
+        db           = dbParam['db'],
+        user         = dbParam['user'],
+        passwd       = dbParam['passwd'],
+        host         = dbParam['host'],
+        autocommit   = True,
+        charset      = 'utf8',
+        use_unicode  = True
+    )
+
+# ----------------------------------------------------------------------------
+def _dic_values(keys, xDic):
+    xList = []
+    for key in keys:
+        if key in xDic:
+            xList.append(xDic[key])
+    return xList
+
+def _escape_sql(sSQL, params):
+    xsql = '\n'.join(sSQL) if type(sSQL) in [list, tuple] else sSQL
+    if params is None:
+        return xsql
+    xparams = params.copy()
+    for key, value in list(params.items()):
+        if key.startswith('no_escape'):
+            continue
+        if key == 'where':
+            continue
+        if value in ('=', '!='):  # compare operator
+            continue
+        if isinstance(value, str):
+            xparams[key] = MySQLdb.escape_string(value).decode('utf-8')
+    return StringTemplate(xsql, substitutions=xparams)
+
+def _getHostForDB():
+    return ['drpicksk.carenet.com', 'drpicks.carenet.com'][_isHonban()]
+
+
+reSelect = re.compile(r'^select|^show', re.IGNORECASE)
+# def _fetch(sSQL, params=None, bLog=False, req=None, self=None, bNotExecute=False, bFetchOne=False, bCache=True):
+# キャッシュしてしまうとテストができないので一旦bCacheをFalse
+def _fetch(sSQL, params=None, bLog=False, req=None, self=None, bNotExecute=False, bFetchOne=False, bCache=False):
+    def invalidate_cache(perids):
+        for perid in perids:
+            redis_key = 'cache:drpicks:{}:*'.format(perid)
+            for key in self.redis.search(redis_key):
+                self.redis.delete(key)
+    if self is None:
+        raise 'No self...'  # must valid!
+    template = _escape_sql(sSQL, params)
+    query = str(template)
+    bSelect = reSelect.match(query.lstrip())
+    fields = ''
+    if bCache:
+        if type(template) != str:
+            fields = template.fields()
+    redis_key = None
+    cache = self.redis.cache()
+    if bSelect:
+        key = ""
+        if bCache:
+            x = _dic_values(fields, params)
+            if x:
+                key = x[0]
+        if bCache and isinstance(key, int) is False and key.isdigit() and len(key) == 8:
+            hash = hashlib.sha224(query.encode('utf-8')).hexdigest()
+            redis_key = 'drpicks:{}:{}'.format(':'.join(map(str, x)), hash)  # cacheではキーに自動的に「cache:」がprefixされる
+            xRec = cache.get(redis_key)
+            if xRec is not None:
+                if bLog:
+                    self.SaveLog('sSQL=%s' % query)
+                self.last_rowcount = xRec[0]
+                return xRec[1]
+    conn = mypool.connect()
+    cursor = conn.cursor(cursorclass=DictCursor)
+    try:
+        if bLog:
+            self.SaveLog('sSQL=%s' % query)
+            if bNotExecute:
+                return
+        rowcount = cursor.execute(query)
+        if bSelect:
+            self.last_rowcount = rowcount
+            recs = (cursor.fetchone() if bFetchOne else cursor.fetchall())
+            if redis_key:
+                xRecs = (rowcount, recs)
+                cache.set(redis_key, xRecs, self.redis.xTimeSecs)
+            return recs
+        if fields:
+            perids = [x for x in _dic_values(fields, params) if x and isinstance(x, int) is False and x.isdigit() and len(x) == 8]  # peridsは8けた数字
+            invalidate_cache(perids)
+        return rowcount, cursor.lastrowid  # INSERT/REPLACE/DELETE...
+    finally:
+        cursor.close()
+        conn.close()  # return conn to pool
+
+def _isHonban():
+    return os.environ.get('ENV') == 'honban'
+
+# ----------------------------------------------------------------------------
+# Misc
+def _SaveLog(xtr, self=None):
+    if bWeb:
+        if self.isHonban():
+            t = time.localtime(time.time())
+            st = time.strftime("%y-%m-%d %H:%M:%S", t)
+            uwsgi.log(f"{uwsgi.total_requests()} {st} {xtr}")
+        else:
+            uwsgi.log(f"{uwsgi.total_requests()} {xtr}")
+    else:  # pytest
+        print(xtr)
+
+
+def _getRedirectURL(self, bQuote=True):
+    uri = self.req.script_root + self.req.path
+    unparsed_uri = self.req.environ.get('REQUEST_URI', '')
+    url_param = unparsed_uri.replace(uri, '')
+    paramList = []
+    if url_param:
+        paramList = url_param[1:].split('&')
+    http = 'http'
+    sslmode = int(self.req.is_secure)
+    if sslmode:
+        http = 'https'
+    host = self.req.environ.get('HTTP_HOST', '')
+    url  = '{}://{}{}'.format(http, host, uri)
+    if paramList:
+        url = '{}?{}'.format(url, '&'.join(paramList))
+    func = self.req.path[1:]
+    if 'more_rec' in func:
+        url = '{}://{}{}'.format(http, host, self.req.script_root)
+    if bQuote:
+        return urllib.parse.quote_plus(url)
+    return url
+
+def _login(self):
+    # sessionを削除
+    self.headers_out.add('Set-Cookie', 'ses_%s=; path=/; expires=Tue, 01-May-2001 00:00:00 GMT' % self.hperid)
+    subdomain = ('www' if self.isHonban() else 'www-d1')
+    com_redirectlogin = 'https://%s.carenet.com/login.php' % subdomain  # ドットコムログイン画面表示
+    sURL = '%s?RedirectUrl=%s' % (com_redirectlogin, _getRedirectURL(self))
+    line = StringTemplate(self.t.RedirectTemplate)
+    line['URL'] = sURL
+    self.wtr << str(line)
+    abort('redirect')
+
+reLi = re.compile(r'<li>(.*?)</li>')
+def _dotcom_footer(self):
+    # subdomain = ('www' if _isHonban() else 'www-d1') # must open firewall to tk-webk?
+    subdomain = 'www'
+    url = 'https://%s.carenet.com/api2013/footer_simple960?js=on' % subdomain
+    xkey      = '%s-%s' % ('footer_dr', url)
+    cache = self.redis.cache()
+    footer_links = cache.get(xkey)
+    if footer_links is not None:
+        return footer_links
+    r = requests.get(url)
+    if r.status_code == 200:
+        x = reLi.findall(r.content.decode('utf-8'))
+        footer_links = ' | '.join(x)
+        if not _isHonban():
+            footer_links = footer_links.replace('www.', 'www-d1.')  # must open firewall to tk-webk?
+        cache.set(xkey, footer_links, self.redis.xTimeSecs)
+        return footer_links
+
+def _logout(self):
+    self.headers_out.add('Set-Cookie', 'key=; path=/; Domain=.carenet.com; expires=Tue, 01-May-2001 00:00:00 GMT')
+    sURL = _getRedirectURL(self, bQuote=False).replace('/logout?', '')
+    line = StringTemplate(self.t.RedirectTemplate)
+    line['URL'] = sURL
+    self.wtr << str(line)
+    abort('redirect')
+
+def _set_session_to_cookie(self):
+    jp_time     = 9 * 60 * 60  # GMT 東京(+9:00)
+    logout_time = 1 * 60 * 60  # 1h
+    expire      = datetime.now() + timedelta(seconds=logout_time) - timedelta(seconds=jp_time)
+    self.headers_out.add('Set-Cookie', 'ses_%s=%s; path=/;expires=%s' % (self.hperid, self.session_id, expire.strftime('%a, %d-%b-%Y %H:%M:%S')))
+    return
+
+def _rec_dp_session(self, req, userDic):
+    paramDic = dict(
+        personal_id = self.perid,
+        linkfrom    = self.form.linkfrom,
+        useragent   = req.environ.get('HTTP_USER_AGENT', '')
+    )
+    res, session_id = self.fetch(sql.insert_dp_session, paramDic)
+    return session_id
+
+def _rec_dp_action(self, xaction):
+    # health_checkはアクションに記録しない
+    if xaction == 'health_check':
+        return
+    # 新しくPickした際に、news_idを生成してから登録する為、最初は記録しない
+    if xaction == 'saveComment' and not self.form.news_id:
+        return
+    if xaction == 'index':
+        xaction = 'top'
+        if self.form.get('category'):
+            xaction = 'category_%s' % self.form.category
+        if self.form.get('usr'):
+            xaction = 'usr_%s' % self.display_pid
+    paramDic = dict(
+        session_id = self.session_id,
+        action     = xaction,
+        news_id    = self.form.news_id if self.form.news_id else 0
+    )
+    self.fetch(sql.insert_dp_action, paramDic)
+
+# BOTからのりクエストか判定
+def _isSnsBot(self):
+    # UAで判定
+    useragent = self.req.environ.get('HTTP_USER_AGENT', '').lower()
+    # Twitter、Facebook
+    for agent in ('twitterbot/1.0', 'facebookexternalhit/1.1', 'Slackbot-LinkExpanding'):
+        if agent in useragent:
+            return True
+    return False
+
+def _makeLoginCookie(self, pid, level="low"):  # 他のアプリと同じクーキー設定 (ComLoginChecker.DotcomLoginCookie(self.req, self.isHonban()).checkLowLevelSecurity())
+    comLogin = self.comLoginChecker
+    cookieVal = comLogin.getLoginCookie(level, pid)
+    self.headers_out.add('Set-Cookie', '%s=%s; path=/; Domain=carenet.com;%s' % (comLogin.cookieKey[level], cookieVal, comLogin.secure[level]))
+
+# ----------------------------------------------------------------------------
+def run_web(env, sr, app, wkdir, validFunctions):
+    req = BaseRequest(env)  # http://werkzeug.pocoo.org/docs/0.11/wrappers/
+    env = Environment(loader=FileSystemLoader('./', encoding='utf8'))
+    # ------------------------------------------------------------------------
+    # Convenient user functions
+
+    self = UserFunction()
+    self.html          = ''
+    self.form          = {}
+    self.req           = req
+    self.form_original = req.values.to_dict()
+    self.form['host']  = req.host
+    self.headers_out   = datastructures.Headers()
+    # self.fetch         = partial(_fetch, req=req, self=self)
+    # self.fetchone      = partial(_fetch, req=req, self=self, bFetchOne=True)
+    # self.escape_sql    = _escape_sql
+    # self.rec_dp_action = _rec_dp_action
+    self.session_id           = ''
+    # ------------------------------------------------------------------------
+    # dispatch
+    try:
+        handle   = None
+        func     = req.path[1:]
+        func     = 'index' if not func else func
+        if func not in validFunctions:  # 安全の為チェックする
+            func = '_not_found'
+        handle = getattr(app, func)
+        handle(self, req)
+    except HTTPException:
+        pass  # raised by abort in redirectPage...
+    env = Environment(loader=FileSystemLoader('./', encoding='utf8'))
+    tmpl = env.get_template(f'./template/{func}.html')
+    html = tmpl.render()
+    sr('200 OK', [('Content-Type', 'text/html')])
+    return [html.encode('utf-8')]
+
+
+# End

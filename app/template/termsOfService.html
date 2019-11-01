@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb# article: http://ogp.me/ns/article#">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  <meta name="description" content="test" />
+  <title>{{ title }}</title>
+  <link rel="icon" href="/images/favicon.ico">
+  <link rel="stylesheet" type="text/css" href="/css/bulma.min.css">
+  <link rel="stylesheet" type="text/css" href="/css/tachyons.min.css">
+  <link rel="stylesheet" type="text/css" href="/css/font-awesome.min.css">
+  <link rel="stylesheet" type="text/css" href="/css/regist.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+  <script type="text/javascript" src="/js/jquery.colorbox-min.js"></script>
+  <script type="text/javascript" src="/js/regist.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.js"></script>
+  {{ common }}
+</head>
+<body  style="margin:auto;text-align:center">
+
+  <!-- about us -->
+  <section class="section pt-5 pb-7">
+    <div class="container">
+  <div class="row justify-content-between align-items-center">
+    <div class="text-center ml-3 mr-3">
+      <h4>個人情報のご登録に伴う同意書</h4>
+      <div class="text-right ml-3 mr-3">
+        株式会社 Dogwood Community<br>
+        代表取締役 池田 省平
+
+        <div class="w-100 ph5-l mt5" style="height:400px; overflow-y:scroll;">
+          <table border=1 height="100" class="w-100 pv2">
+            <tr>
+              <td class="pv2 ph2 ph4-l">{{ policy_text }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <form class="mt3 ba pv3 mh1 mh5-l" id="entry_policy" action="entryForm" method="post">
+        <p>
+          <input type="checkbox" class="pv1" id="policy" name="policy_check" /><label for="policy">個人情報について上記に同意します。</label>
+        </p>
+        <input type="button" class="policy_submit mt3" value="情報入力画面へ">
+      </form>
+    </div>
+  </div>
+    </div>
+  </section>
+
+<!--/main-->
+    </div>
+<!--/inner-->
+  </div>
+<!--/contents-->
+  <p id="pagetop" class="inner mt0"><a href="#">↑</a></p>
+  <footer>
+    <div id="copyright">
+      <small>Copyright&copy; 2019 <a href="https://dogwood-community.jp">Dogwood Community</a> All Rights Reserved.</small>
+
+    </div>
+  </footer>
+
+</body>
+</html>
+

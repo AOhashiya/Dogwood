@@ -1,0 +1,242 @@
+# -*- coding: utf-8 -*-
+import gevent.monkey
+gevent.monkey.patch_all()
+
+import sys
+import arrow
+import datetime
+import os
+import re
+import requests
+import html
+import json
+import sqls as sql
+import MeCab
+from cytoolz import merge
+import lxml.html
+import subprocess
+import cchardet
+import collections
+import termextract.mecab
+import termextract.core
+from yats    import StringTemplate
+from urllib.parse import urlparse
+from urllib.parse import urlencode
+from PIL          import Image
+from resizeimage  import resizeimage, imageexceptions
+from werkzeug.exceptions import abort
+
+from functools    import wraps
+# from prettyprint  import  pp_str
+
+uLibPath = r'../uLib'
+if uLibPath not in sys.path:
+    sys.path.insert(1, uLibPath)
+import uBase
+
+# ----------------------------------------------------------------------------
+# https://docs.python.org/3/library/functools.html#functools.wraps
+
+gValidFunctions = []
+
+def routed(f):
+    gValidFunctions.append(f.__name__)
+
+    @wraps(f)
+    def wrapper(*args, **kwds):
+        return f(*args, **kwds)
+    return wrapper
+
+gwkdir = os.path.dirname(os.path.realpath(__file__))
+hashids = uBase.hashids
+
+# ----------------------------------------------------------------------------
+# Util
+def _login_or_logout(self, t):
+    extract = ('extractLogin' if self.perid else 'extractLogout')
+    t.extract(extract)
+
+def _humanize(date):
+    past_day = datetime.datetime.now() - datetime.timedelta(hours = 24)  # 1 day前で良い？
+    return arrow.get(date, 'local').humanize(locale='ja') if date > past_day else date.strftime('%Y年%m月%d日')
+
+def _not_found(self, req):
+    _error_html(self, '<div class="bg-white ph2 pv4 pv6-ns f5 tc">お探しのページが見当たりません</div>')
+
+def _error_html(self, error_html):
+    xDic = dict(
+        xtitle        = 'Doctors\'Picks',
+        home_url      = self.form['home_url'],
+        random        = self.form['random'],
+        xcomponent    = error_html,
+        xcontainer    = 'container',
+        globalnavi_id = '',
+        gtm_for_header = getattr(self.t, 'gtm_for_header_%s' % ('honban' if self.isHonban() else 'kaihatsu')),
+        gtm_for_body  = getattr(self.t, 'gtm_for_body_%s' % ('honban' if self.isHonban() else 'kaihatsu')),
+    )
+    self.wtr << StringTemplate(self.t.opviewTemplate, xDic)
+
+def _escape_html(value, url_link=True):
+    value = html.escape(value.strip())
+    if value and url_link:
+        # 正規表現でURL文字列を判定しタグを付与。結構甘めな正規表現になってるので問題があった場合は適宜修正
+        value = re.sub('(http(s)?://([!-~]+\.)+[!-~]+(/[!-~]*)?)', '<span class="url_link" data-url="\\1">\\1</span>', value)
+    value = value.replace('\n', '<br>')
+    return value
+# ----------------------------------------------------------------------------
+
+def _mountHTML(self, xDic, xtitle, description=''):
+    # 左下に表示するリストを定義
+    left_menu_list = dict(
+        recommend_follow = False,  # おすすめユーザ
+        news_ranking     = False,  # 記事ランキング
+    )
+    paramDic = merge(self.form, xDic)
+    paramDic[self.form.t]   = 'is-active'
+    paramDic['home_url']    = self.form['home_url']
+    paramDic['user']        = hashids.encode(int(self.display_pid)) if self.display_pid else self.hperid
+    component               = _makeComponent(self, paramDic, xtitle, left_menu_list)
+    xDic      = dict(
+        xtitle         = xtitle,
+        # description    = (description if description else xtitle),
+        xcomponent     = str(component),
+        xcontainer     = 'container',
+        hpersonal_id   = self.hperid,
+        globalnavi_id  = self.globalnavi_id,
+        gtm_for_header = getattr(self.t, 'gtm_for_header_%s' % ('honban' if self.isHonban() else 'kaihatsu')),
+        gtm_for_body   = getattr(self.t, 'gtm_for_body_%s' % ('honban' if self.isHonban() else 'kaihatsu')),
+    )
+    paramDic.update(xDic)
+    t = StringTemplate(self.t.opviewTemplate, paramDic)
+    _login_or_logout(self, t)
+    self.wtr << t
+
+def _makeComponent(self, xDic, xtitle, left_menu_list):
+    # メインコンテンツ
+    component = StringTemplate(self.t.urlInfo, xDic)
+    component['global_navi'] = str(StringTemplate(self.t.globalNaviArea, _setGlobalNavi(self)))
+    component.extract('message_area')
+    return component
+
+@routed
+def index(self, req, fromNews = False):
+    title       = 'おすすめ'
+    description = ''
+    xDic = _more_recs(self, req)
+    xDic['moreRecs'] = str(StringTemplate(self.t.moreRecs, xDic))
+    xDic['infiScroll'] = 'infiScroll'
+    xDic['userPicks'] = StringTemplate(self.t.userPicks, self.display_usrDic)
+
+    _mountHTML(self, xDic, title, description)
+
+# グローバルナビ表示
+def _setGlobalNavi(self):
+    res = {
+        'tag_list': [rec for rec in self.fetch(sql.category) if rec['category_name'] != 'TOP'],
+    }
+    return res
+
+def _mecab(self):
+    xList = []
+    searchList = []
+    nm    = MeCab.Tagger('')
+    #  専門用語として判別
+    frequency = termextract.mecab.cmp_noun_dict(nm.parse(self.form.search))
+    if frequency:
+        LR        = termextract.core.score_lr(
+            frequency,
+            ignore_words=termextract.mecab.IGNORE_WORDS,
+            lr_mode=1, average_rate=1
+        )
+        term_imp        = termextract.core.term_importance(frequency, LR)
+        data_collection = collections.Counter(term_imp)
+        searchList = data_collection.most_common()
+    else:
+        # "ほ"が検索ワードに入ると動作がおかしくなるのでtranslatorに通せるようにListを作成 2019-03-22
+        searchList = [(self.form.search, '')]
+    for cmp_noun, value in searchList:
+        analysis_text = termextract.core.modify_agglutinative_lang(cmp_noun)
+        text          = self._get_cache(self, 'search', analysis_text)
+        if not text:
+            # 全角文字の専門用語を翻訳
+            if re.compile(r'^[a-zA-Z0-9 ]+$').match(analysis_text) is None:
+                text = self.translator.translate(analysis_text, src='ja', dest='en').text
+            else:
+                text = self.translator.translate(analysis_text, src='en', dest='ja').text
+            self._set_cache(self, 'search', analysis_text, text)
+        xList.append([
+            text,
+            analysis_text
+        ])
+    return xList
+
+def _make_like_search(self, table_name, table_column):
+    matchSQL  = []
+    xList     = _mecab(self)
+    for column in table_column:
+        make_word = []
+        if len(xList) != 0:
+            for search in xList:
+                word = [f"{table_name}.{column} LIKE \"%{self.mysql_escape(value).decode('utf-8')}%\"" for value in search]
+                #  翻訳はOR検索
+                make_word.append(f"({' OR '.join(word)})")
+        else:
+            # _mecabを修正したのでここに入ってくることはないと思うが入ってきた場合エラーになるので処理を追加 2019-03-22
+            make_word.append(f"{table_name}.{column} LIKE \"%{self.mysql_escape(self.form.search).decode('utf-8')}%\"")
+        # 全角空白空けての検索はAND（絞り込み）
+        matchSQL.append(f"{' AND '.join(make_word)}")
+    return '(%s)' % ' OR '.join(matchSQL)
+
+def _more_recs(self, req):
+    if 'limitOffset' in self.form and self.form.limitOffset.isdigit():
+        limitOffset = int(self.form.limitOffset)
+    else:
+        limitOffset = int(req.cookies.get('nextLimitOffset', 0)) if self.form.get('from', '') == 'browser' else 0
+    rowCount = int(self.form.rowCount if 'rowCount' in self.form else 20)  # when called from pytest
+    limit = 'limit %s, %s' % (limitOffset, rowCount)
+    recs = self.fetch(sql_str, paramDic, bCache=False, bLog=True)
+    last_rowcount = self.last_rowcount  # Important! don't move this line
+    recs = [_proc_url_info_rec(self, rec, limitOffset + i + 1) for i, rec in enumerate(recs)]
+
+    nextLimitOffset     = limitOffset + last_rowcount
+    # Todo: NG for multiple browser instances! 他の方法を検討する
+    self.headers_out.add('Set-Cookie', 'nextLimitOffset=%s; path=/; Domain=carenet.com;' % nextLimitOffset)
+    return xDic
+
+# ajax
+@routed
+def more_recs(self, req):
+    xDic = _more_recs(self, req)
+    self.wtr << StringTemplate(self.t.moreMyNewsRecs, xDic)
+
+@routed
+def tweet(self, req):
+    self.wtr << 'OK'
+
+# ----------------------------------------------------------------------------
+# No Login
+# ----------------------------------------------------------------------------
+@routed
+def lp(self, req):
+    if self.nologin:
+        xDic = dict(
+            xtitle        = 'Doctors’Picksとは｜医師・医療従事者向け医学情報・医療ニュースならケアネット',
+            script_name   = self.script_name,
+            home_url      = self.form['home_url'],
+            base_url      = self.req.url,
+            random        = self.form['random'],
+            xcontainer    = 'container',
+            globalnavi_id = '',
+            gtm_for_header = getattr(self.t, 'gtm_for_header_%s' % ('honban' if self.isHonban() else 'kaihatsu')),
+            gtm_for_body  = getattr(self.t, 'gtm_for_body_%s' % ('honban' if self.isHonban() else 'kaihatsu')),
+        )
+        self.wtr << StringTemplate(self.t.Lp, xDic)
+        return
+
+# ----------------------------------------------------------------------------
+# uwsgi entry point
+# ----------------------------------------------------------------------------
+def application(env, sr):
+    return uBase.run_web(env, sr, sys.modules[__name__], gwkdir, gValidFunctions)
+
+# End

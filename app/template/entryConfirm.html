@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb# article: http://ogp.me/ns/article#">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  <title>{{ title }}</title>
+  <link rel="icon" href="/images/favicon.ico">
+  <link rel="stylesheet" type="text/css" href="/css/bulma.min.css">
+  <link rel="stylesheet" type="text/css" href="/css/tachyons.min.css">
+  <link rel="stylesheet" type="text/css" href="/css/font-awesome.min.css">
+  <link rel="stylesheet" type="text/css" href="/css/regist.css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+  <script type="text/javascript" src="/js/jquery.colorbox-min.js"></script>
+  <script type="text/javascript" src="/js/regist.min.js"></script>
+  <script src="https://ajaxzip3.github.io/ajaxzip3.js" charset="UTF-8"></script>
+  {{ common }}
+</head>
+<body>
+  <div class="contents ml7-l">
+    <div class="inner">
+      <div class="main">
+	<section>
+	  <h2>仮登録シート</h2>
+	  <form id="form-signup" class="active" action="entryComplete" method="post">
+	  <table class="ta1 mb1em">
+	    <tr>
+	      <th colspan="2" class="tamidashi"></th>
+	    </tr>
+	    <tr>
+	      <th rowspan="2">お名前<br>Name</th>
+	      <td>フリガナ：{{ ename }}<br>Katakana</td>
+	    </tr>
+	    <tr>
+	      <td>漢字/ローマ字：{{ name }}<br>Kanji/Romaji</td>
+	    </tr>
+	    <tr>
+	      <th>性別<br>Gender</th>
+	      <td>{{ gender }}</td>
+	    </tr>
+	    <tr>
+	      <th>生年月日<br>Birthdate</th>
+	      <td>{{ year }}年{{ month }}月{{ day }}日</td>
+	    </tr>
+	    <tr>
+	      <th>国籍<br>Nationality</th>
+	      <td>{{ nationality }}</td>
+	    </tr>
+	    <tr>
+	      <th>日本語能力<br>Japanese skill</th>
+	      <td>{{ japanese }}</td>
+	    </tr>
+	    <tr>
+	      <th>語学力<br>Language skill</th>
+	      <td>{{ language }}</td>
+	    </tr>
+	    <tr>
+	      <th>メールアドレス<br>e-mail</th>
+	      <td>{{ mail }}</td>
+	    </tr>
+	    <tr>
+	      <th>電話番号<br>Tel</th>
+	      <td>{{ phone }}</td>
+	    </tr>
+	    <tr>
+	      <th>ご住所<br>Address(prefectures)</th>
+	      <td>郵便番号:{{ zip31 }}-{{ zip32 }}<br>都道府県(prefectures):{{ pref31 }}</td>
+	    </tr>
+	    <tr>
+	      <th>ご住所(市区町村以下)<br>Address (city and details)</th>
+	      <td>{{ addr31 }}</td>
+	    </tr>
+	    <tr>
+	      <th>ビザ<br>Visa status</th>
+	      <td>{{ visa }}</td>
+	    </tr>
+	    <tr>
+	      <th>ビザの有効期限<br>Expiration date of Visa</th>
+	      <td>{{ expiration_year }}年{{ expiration_month }}月{{ expiration_day }}日</td>
+	    </tr>
+	    <tr>
+	      <th>希望職種<br>Preferred job type</th>
+	      <td>{{ jobtype }}</td>
+	    </tr>
+	    <tr>
+	      <th>希望条件（給料）<br>Desired conditions (salary)</th>
+	      <td>{{ salary }}</td>
+	    </tr>
+	    <tr>
+	      <th>希望勤務地<br>Preferred workplace</th>
+	      <td>{{ work_location }}</td>
+	    </tr>
+	    <tr>
+	      <th>転職希望日<br>Date of Job Change</th>
+	      <td>{{ jobchange_date_year }}年{{ jobchange_date_month }}月{{ jobchange_date_day }}日</td>
+	    </tr>
+	    <tr>
+	      <th>大学名(在学中の方)<br>College/University name</th>
+	      <td>{{ college }}</td>
+	    </tr>
+	    <tr>
+	      <th>最終学歴<br>Academic background</th>
+	      <td>{{ final_education }}</td>
+	    </tr>
+	    <tr>
+	      <th>資格・免許<br>Qualification　．license</th>
+	      <td>{{ license }}</td>
+	    </tr>
+	    <tr>
+	      <th>職歴<br>work experience</th>
+	      <td>{{ career }}</td>
+	    </tr>
+	    <tr>
+	      <th>転職希望か<br>Job Change</th>
+	      <td>{{ jobchange }}</td>
+	    </tr>
+	    <tr>
+	      <th>特定技能の有無<br>Presence of Specific skills</th>
+	      <td>{{ specific_skills }}</td>
+	    </tr>
+	    <tr>
+	      <th>特定技能を受験予定か<br>Plan to take Specific skills exam</th>
+	      <td>{{ specified_skilled_plans }}</td>
+	    </tr>
+	  </table>
+
+	  <p class="c">
+	    <input type="submit" class="entryConfirm" value="仮登録する" data-action="entryComplete">
+	  </p>
+	  <p class="c">
+	    <input type="submit" class="entryConfirm" value="修正する" data-action="entryForm">
+	  </p>
+	  <input type="hidden" name="specified_skilled_plans" value="{{ specified_skilled_plans_key }}">
+	  <input type="hidden" name="jobchange" value="{{ jobchange_key }}">
+	  <input type="hidden" name="work_location" value="{{ work_location_key }}">
+	  <input type="hidden" name="language" value="{{ language_key }}">
+	  <input type="hidden" name="token"     value="{{ token }}">
+	  </form>
+	</section>
+      </div>
+
+<!--/main-->
+    </div>
+<!--/inner-->
+  </div>
+<!--/contents-->
+  <p id="pagetop" class="inner"><a href="#">↑</a></p>
+  <footer>
+    <div id="copyright">
+      <small>Copyright&copy; 2019 <a href="https://dogwood-community.jp">Dogwood Community</a> All Rights Reserved.</small>
+
+    </div>
+  </footer>
+</body>
+</html>
+

@@ -1,0 +1,9 @@
+# .gitignore
+myresult.txt
+tags
+tags.SAFE
+.cache/*
+ __pycache__/*
+.tmp_upload/*
+*.vim-prj
+*.orig
