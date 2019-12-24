@@ -38,7 +38,7 @@ if __name__ == "__main__":
     observer = Observer()
     observer.schedule(event_handler, path='.', recursive=False)
     observer.start()
-    os.system('touch regist.js')  # always refresh at start watching, pushの後にリフレッシュが便利
+    os.system('touch portal.js')  # always refresh at start watching, pushの後にリフレッシュが便利
     os.system('make css')                 #
     print('Start watching...')
     try:

@@ -5,17 +5,147 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
   <meta name="description" content="test" />
-  <title>test</title>
-  <link rel="icon" href="/images/favicon.ico">
-  <link rel="stylesheet" type="text/css" href="/css/bulma.min.css">
-  <link rel="stylesheet" type="text/css" href="/css/tachyons.min.css">
-  <link rel="stylesheet" type="text/css" href="/css/font-awesome.min.css">
-  <link rel="stylesheet" type="text/css" href="/css/portal.min.css">
-  <script type="text/javascript" src="/js/portal.min.js"></script>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.js"></script>
+  <title>{{ title }}</title>
+  {{ common }}
+<script>
+$(function($){
+	$('html').smoothscroll({easing : 'swing', speed : 1000, margintop : 50, headerfix : $('header'), outersmooth : true});
+	$('.totop').scrollshow({position : 500});
+	$('.slide').slideshow({
+		touch        : false,
+		bgImage      : false,
+		autoSlide    : true,
+		effect       : 'fade',
+		repeat       : true,
+		easing       : 'swing',
+		interval     : 5000,
+		duration     : 1000,
+		imgHoverStop : false,
+		navHoverStop : false,
+		navImg       : false,
+		navImgCustom : false,
+		navImgSuffix : ''
+	});
+});
+</script>
 </head>
 <body>
-  {{ shop }}
+{{ top_menu }}
+<div class="slide">
+	<ul class="slideInner">
+		<li><img src="/images/slider/banner-1.jpg" alt="社会福祉法人洗心会"></li>
+		<li><img src="/images/slider/banner-2.jpg" alt="社会福祉法人洗心会"></li>
+		<li><img src="/images/slider/banner-3.jpg" alt="特別養護老人ホームときわ 長期入所と短期入所と診療所"></li>
+	</ul>
+</div><!-- /.slide -->
+
+<div id="contents">
+	<h2>INFORMATION<br><span>お知らせ</span></h2>
+	<dl class="information">
+		<dt><span>2019-10-01</span></dt>
+		<dd>
+		 	<a href="#">新着情報４</a>
+		</dd>
+		<dt><span>2019-10-01</span></dt>
+		<dd>
+		 	<a href="#">新着情報３</a>
+		</dd>
+		<dt><span>2019-05-13</span></dt>
+		<dd>
+		 	<a href="#">新着情報２</a>
+		</dd>
+		<dt><span>2019-04-01</span></dt>
+		<dd>
+		 	<a href="#">新着情報１</a>
+		</dd>
+	</dl>
+
+	<a href="#annnai"><h2>ABOUT US<br><span>外国人人材紹介会社</span></h2></a>
+
+<div class="imgL">
+		<img src="/images/f-photo-1.png" alt="特別養護老人ホームときわ">
+		<h3>外国人の介護人材をご紹介させていただきます。</h3>
+		<p>特定技能を中心として、外国人を対象に職業紹介を行っております。<br>
+企業の皆様につきましては少子高齢化に伴う労働人口の減少がどんどん加速していくなかで、多様なニーズに合わせて、主に外国人の介護人材を紹介させて頂きます。</p>
+	</div>
+
+
+	<a href="#annnai"><h2>COMPANY・FACILITY<br><span>介護人材を探す</span></h2></a>
+	<div class="threeCol">
+		<div class="inner">
+			<div class="image zoom"><a href="corp-head.php"><img src="/images/photo-1.png" alt="勤務地から探す"></a></div>
+			<h4>勤務地から探す</h4>
+			<p>ご希望の勤務地を選択して探します。</p>
+			<div class="btn"><a href="corp-head.php">詳しく見る</a></div>
+            <br>
+		</div><!-- /.inner -->
+		<div class="inner">
+			<div class="image zoom"><a href="https://kobe-senshinkai.or.jp/tokuyo/"><img src="/images/photo-2.png" alt="特定技能から探す"></a></div>
+			<h4>特定技能から探す</h4>
+			<p>一定の専門性・技能を有し即戦力となる外国人を探します。</p>
+			<div class="btn"><a href="https://kobe-senshinkai.or.jp/tokuyo/">詳しく見る</a></div>
+            <br>
+		</div><!-- /.inner -->
+		<div class="inner">
+			<div class="image zoom"><a href="https://kobe-senshinkai.or.jp/tokuyo/clinic/"><img src="/images/photo-3.png" alt="資格から探す"></a></div>
+			<h4>資格から探す</h4>
+			<p>求職者が所持している資格から、探します。</p>
+			<div class="btn"><a href="https://kobe-senshinkai.or.jp/tokuyo/clinic/">詳しく見る</a></div>
+            <br>
+		</div><!-- /.inner -->
+	</div><!-- /.threeCol -->
+
+	<a href="#annnai"><h2>JOBSEEKER<br><span>仕事を探す</span></h2></a>
+	<div class="threeCol">
+		<div class="inner">
+			<div class="image zoom"><a href="corp-head.php"><img src="/images/photo1-1.png" alt="勤務地から探す"></a></div>
+			<h4>勤務地から探す</h4>
+			<p>ご希望の勤務地を選択して探します。</p>
+			<div class="btn"><a href="corp-head.php">詳しく見る</a></div>
+            <br>
+		</div><!-- /.inner -->
+		<div class="inner">
+			<div class="image zoom"><a href="https://kobe-senshinkai.or.jp/tokuyo/"><img src="/images/photo2-2.png" alt="特定技能から探す"></a></div>
+			<h4>特定技能から探す</h4>
+			<p>外国人受け入れを希望の企業から、探します。</p>
+			<div class="btn"><a href="https://kobe-senshinkai.or.jp/tokuyo/">詳しく見る</a></div>
+            <br>
+		</div><!-- /.inner -->
+		<div class="inner">
+			<div class="image zoom"><a href="https://kobe-senshinkai.or.jp/tokuyo/clinic/"><img src="/images/photo3-3.png" alt="資格から探す"></a></div>
+			<h4>施設から探す</h4>
+			<p>施設名から、探します。</p>
+			<div class="btn"><a href="https://kobe-senshinkai.or.jp/tokuyo/clinic/">詳しく見る</a></div>
+            <br>
+		</div><!-- /.inner -->
+	</div><!-- /.threeCol -->
+
+
+	<h2>RECRUIT<br><span>採用情報</span></h2>
+	<div class="threeCol">
+		<div class="inner">
+			<a href="https://kobe-senshinkai.or.jp/tokuyo/recruit/">
+				<div class="image zoom overlay"><img src="/images/photo-4.png" alt=""></div>
+				<div class="text">募集職種</div>
+			</a>
+		</div><!-- /.inner -->
+		<div class="inner">
+			<a href="https://kobe-senshinkai.or.jp/tokuyo/recruit/individual-briefing/">
+				<div class="image zoom overlay"><img src="/images/photo-5.png" alt=""></div>
+				<div class="text">説明会予約</div>
+			</a>
+		</div><!-- /.inner -->
+		<div class="inner">
+			<a href="https://kobe-senshinkai.or.jp/tokuyo/entry_form/">
+				<div class="image zoom overlay"><img src="/images/photo-6.png" alt=""></div>
+				<div class="text">エントリー</div>
+			</a>
+		</div><!-- /.inner -->
+	</div><!-- /.threeCol -->
+</div><!-- /.contents -->
+
+<div class="totop"><a href="#"><img src="/images/totop.png" alt="ページのトップへ戻る"></a></div><!-- /.totop -->
+
 </body>
 </html>
+

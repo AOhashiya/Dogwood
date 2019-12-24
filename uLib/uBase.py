@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 # uBase.py
 import base64
-import dbini
-import dwconfig
+# import dbini
+# import dwconfig
 import hashlib
-import MySQLdb
+# import MySQLdb
 import os
 import random
 import re
@@ -26,7 +26,7 @@ from email.mime.text import MIMEText
 from email.utils   import formatdate
 from functools     import partial
 from hashids       import Hashids
-from MySQLdb.cursors     import DictCursor
+# from MySQLdb.cursors     import DictCursor
 from werkzeug      import BaseRequest, datastructures
 from walrus        import Walrus
 from jinja2        import Environment, FileSystemLoader
@@ -108,8 +108,8 @@ def _mysql_connect_user():
         charset      = 'utf8',
         use_unicode  = True
     )
-mypool     = pool.QueuePool(_mysql_connect, recycle=3600)
-mypooluser = pool.QueuePool(_mysql_connect_user, recycle=3600)
+# mypool     = pool.QueuePool(_mysql_connect, recycle=3600)
+# mypooluser = pool.QueuePool(_mysql_connect_user, recycle=3600)
 
 # ----------------------------------------------------------------------------
 def _dic_values(keys, xDic):
@@ -417,19 +417,82 @@ def _setCommon(self):
     self.tParams['time']   = datetime.now()
     self.tParams['title']  = title
     self.tParams['common'] = f"""
+<link rel="icon" href="/images/favicon.ico">
+<link rel="stylesheet" type="text/css" href="/css/bulma.min.css">
+<link rel="stylesheet" type="text/css" href="/css/tachyons.min.css">
+<link rel="stylesheet" type="text/css" href="/css/font-awesome.min.css">
+<link rel="stylesheet" type="text/css" href="/css/portal.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script type="text/javascript" src="/js/portal.js"></script>
+<script type="text/javascript" src="/js/jquery.smoothscroll.js"></script>
+<script type="text/javascript" src="/js/jquery.scrollshow.js"></script>
+<script type="text/javascript" src="/js/jquery.slideshow.js"></script>
 <meta name="description" content="{SiteDefined.DESCRIPTION}">
 <meta name="keywords" content="{SiteDefined.KEYWORDS}">
 <meta property="og:title" content="{title}">
 <meta property="og:description" content="{SiteDefined.DESCRIPTION}">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://job.dogwood-community.jp/images/logo.png" />
+<meta property="og:image" content="https://portal.dogwood-community.jp/images/logo.png" />
 <meta property="og:url" content="{url}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@DogwoodCommuni1">
 <meta name="twitter:title" content="{title}".>
 <meta name="twitter:url" content="{url}">
 <meta name="twitter:description" content="{SiteDefined.DESCRIPTION}" />
-<meta name="twitter:image" content="https://job.dogwood-community.jp/images/logo.png" />
+<meta name="twitter:image" content="https://portal.dogwood-community.jp/images/logo.png" />
+    """
+
+def _setTopMenu(self):
+    self.tParams['top_menu'] = f"""
+<header>
+	<div class="inner">
+    <div class="search-wrapper">
+    <div class="input-holder">
+    	<form method="get" action="http://www.google.co.jp/search" target="_blank">
+        	<input type="text" class="search-input" placeholder="Type to search">
+        	<button class="search-icon" onclick="searchToggle(this, event);"><span></span></button>
+        	<input type="hidden" name="sitesearch" value="http://portal.dogwood-community.jp">
+		</form>
+    </div>
+    <span class="close" onclick="searchToggle(this, event);"></span>
+	</div>
+
+	<div class="cent">
+		<h1><a href="index.php"><img src="images/logo_big.png" width="240" height="51px" alt="社会福祉法人洗心会"></a></h1>
+	</div>
+
+		<div class="spMenuWrap">
+			<div id="spMenu"><span id="navBtn"><span id="navBtnIcon"></span></span></div>
+		</div>
+		<nav class="gnav">
+			<ul>
+				<li><a href="index.php">ホーム</a></li>
+				<li class="subnav"><a href="corp-head.php">サイトについて</a>
+					<ul>
+						<li><a href="terms.php">利用規約</a></li>
+						<li><a href="privacy_policy.php">個人情報の取り扱い</a></li>
+						<li><a href="contact.php">お問い合わせ</a></li>
+						<li><a href="pay.php">支払い（削除）</a></li>
+					</ul>
+				</li>
+				<li class="subnav"><a href="facility.php">探す</a>
+					<ul>
+						<li><a href="find_employer.php">雇用者を探す</a></li>
+						<li><a href="find_job.php">仕事を探す</a></li>
+					</ul>
+				</li>
+				<li class="subnav"><a href="sign_up.php">新規会員登録</a>
+					<ul>
+						<li><a href="sign_up_company.php">企業様向け</a></li>
+						<li><a href="sign_up_jobseeker.php">求職者様向け</a></li>
+						<li><a href="my_page.php">マイページ</a></li>
+					</ul>
+				</li>
+				<li><a href="Log_in.php">ログイン</a></li>
+			</ul>
+		</nav>
+	</div><!-- /.inner -->
+  </header>
     """
 
 def _setFooter(self):
@@ -512,7 +575,7 @@ def run_web(env, sr, app, wkdir, validFunctions):
             func = '_not_found'
         self.func = func
         handle   = getattr(app, func)
-        _initialize(self)
+        # _initialize(self)
         xDic     = handle(self, req)
     except HTTPException:
         func = 'redirect'
@@ -520,6 +583,7 @@ def run_web(env, sr, app, wkdir, validFunctions):
     if 'func' in xDic:
         func  = xDic['func']
     _setCommon(self)
+    _setTopMenu(self)
     _setFooter(self)
     self.headers_out.add('Cache-Control', 'no-cache')
     if 'Content-Type' not in self.headers_out:

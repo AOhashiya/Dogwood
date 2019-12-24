@@ -44,14 +44,9 @@ def logout(self, req):
     return ''
 
 @routed
-def termsOfService(self, req):
-    user = self.fetchone(sql.select_s_user_policy, self.userData, sDB='user')
-    if user is not None:
-        if 'policy_version' in user and uBase.POLICY_VERSION <= int(user['policy_version']):
-            self.redirect(self, "https://regist.dogwood-community.jp/entryForm")
-    data = self.fetchone(sql.select_m_privacy_policy)
-    self.tParams['policy_text'] = data['text']
-    return ""
+def index(self, req):
+    return ''
+
 
 def _setParams(token, type='input', dic={}):
     data = {
